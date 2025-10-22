@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO Object Detection</title>
+    <style>
+        :root {
+            --primary-color: #0070f3;
+            --secondary-color: #000000;
+            --accent-color: #333333;
+            --background-color: #ffffff;
+            --card-color: #ffffff;
+            --text-color: #000000;
+            --border-color: #eaeaea;
+            --hover-color: #f5f5f5;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #0070f3;
+            --secondary-color: #ffffff;
+            --accent-color: #cccccc;
+            --background-color: #000000;
+            --card-color: #111111;
+            --text-color: #ffffff;
+            --border-color: #333333;
+            --hover-color: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: var(--background-color);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--text-color);
+            text-align: center;
+            margin: 2rem 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+        }
+
+        .header-links {
+            text-align: center;
+            margin-bottom: 3rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .header-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 1rem;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            background-color: var(--card-color);
+        }
+
+        .header-links a:hover {
+            background-color: var(--hover-color);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .upload-section {
+            text-align: center;
+            margin: 2rem 0;
+            padding: 3rem;
+            border: 2px dashed var(--border-color);
+            border-radius: 1rem;
+            transition: all 0.3s ease;
+            background-color: var(--card-color);
+            cursor: pointer;
+        }
+
+        .upload-section:hover {
+            border-color: #4CAF50;
+            background-color: #f0f9f0;
+        }
+
+        .upload-section.drag-over {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 1rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 112, 243, 0.2);
+            opacity: 0.9;
+        }
+
+        .preview-container {
+            margin: 2rem 0;
+            text-align: center;
+            background-color: var(--card-color);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        #preview {
+            max-width: 100%;
+            margin: 1rem 0;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        #results {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+            display: none;
+        }
+
+        .prediction-item {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .prediction-item strong {
+            color: #2196F3;
+            font-size: 1.1em;
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .file-info {
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .error-message {
+            color: #f44336;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #ffebee;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .model-switch {
+            text-align: center;
+            margin: 2rem 0;
+            padding: 1rem;
+            background-color: var(--card-color);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .model-btn {
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.75rem 1.5rem;
+            margin: 0 0.5rem;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .model-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .model-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(0, 112, 243, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="theme-switch">
+            <button id="themeToggle" class="theme-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <h1>Object Detection System</h1>
+        
+        <div class="header-links">
+            <a href="/" class="active">Image Upload</a>
+            <a href="/realtime">Real-time Detection</a>
+        </div>
+
+        <div class="model-switch">
+            <p>Select Model:</p>
+            <button id="defaultModel" class="model-btn active" onclick="switchModel('default')">Default Model</button>
+            <button id="customModel" class="model-btn" onclick="switchModel('custom')">Custom Trained Model</button>
+        </div>
+
+        <div class="upload-section" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*">
+            <div class="upload-content">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <h3>Drag & Drop Image Here</h3>
+                <p>or</p>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose Image
+                </button>
+                <p class="file-info">Supported formats: JPG, PNG</p>
+            </div>
+        </div>
+
+        <div class="preview-container">
+            <img id="preview" alt="Preview">
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>Processing image...</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div id="results"></div>
+    </div>
+
+    <style>
+        .theme-switch {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+        }
+
+        .theme-btn {
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.75rem;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        function setTheme(isDark) {
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+        
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme === 'dark');
+        } else {
+            setTheme(prefersDark.matches);
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            setTheme(!isDark);
+        });
+        
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop zone when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        // Handle dropped files
+        dropZone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFiles, false);
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropZone.classList.add('drag-over');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles({target: {files: files}});
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function handleFiles(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    showError('Please upload an image file (JPG, PNG)');
+                    return;
+                }
+
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+
+                // Upload and process
+                uploadFile(file);
+            }
+        }
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Reset and show loading
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            errorMessage.style.display = 'none';
+
+            fetch('/predict/image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                if (data.status === 'success') {
+                    displayResults(data);
+                } else {
+                    showError(data.message || 'Error processing image');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loading.style.display = 'none';
+                showError('Error uploading or processing image');
+            });
+        }
+
+        function switchModel(modelType) {
+            fetch('/switch_model', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ model: modelType })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update button states
+                    document.getElementById('defaultModel').classList.toggle('active', modelType === 'default');
+                    document.getElementById('customModel').classList.toggle('active', modelType === 'custom');
+                } else {
+                    showError(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Error switching model');
+            });
+        }
+
+        // Get current model on page load
+        fetch('/current_model')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const modelType = data.current_model;
+                    document.getElementById('defaultModel').classList.toggle('active', modelType === 'default');
+                    document.getElementById('customModel').classList.toggle('active', modelType === 'custom');
+                }
+            });
+
+        function displayResults(data) {
+            if (data.status === 'success' && data.predictions) {
+                results.innerHTML = '<h2>Detected Objects:</h2>';
+                
+                if (data.predictions.length === 0) {
+                    results.innerHTML += '<p>No objects detected in the image.</p>';
+                } else {
+                    // Sort predictions by confidence
+                    data.predictions.sort((a, b) => b.confidence - a.confidence);
+                    
+                    data.predictions.forEach(pred => {
+                        const confidence = (pred.confidence * 100).toFixed(2);
+                        const div = document.createElement('div');
+                        div.className = 'prediction-item';
+                        div.innerHTML = `
+                            <strong>${pred.class}</strong>
+                            <div class="confidence-bar" style="width: ${confidence}%"></div>
+                            <small>Confidence: ${confidence}%</small>
+                        `;
+                        results.appendChild(div);
+                    });
+                }
+
+                if (data.annotated_image) {
+                    // Create and display annotated image
+                    const annotatedImg = document.createElement('img');
+                    annotatedImg.src = data.annotated_image;
+                    annotatedImg.style.maxWidth = '100%';
+                    annotatedImg.style.borderRadius = '8px';
+                    annotatedImg.style.marginTop = '20px';
+                    results.appendChild(annotatedImg);
+                }
+
+                results.style.display = 'block';
+            } else {
+                showError(data.message || 'Error displaying results');
+            }
+        }
+    </script>
+</body>
+</html>

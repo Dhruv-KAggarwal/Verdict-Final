@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Object Detection</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --secondary-color: #03A9F4;
+            --accent-color: #FF4081;
+            --background-color: #f5f5f5;
+            --card-color: #ffffff;
+            --text-color: #333333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .camera-select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            color: white;
+            flex: 1;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-start {
+            background-color: #4CAF50;
+        }
+
+        .btn-stop {
+            background-color: #f44336;
+        }
+
+        .btn-refresh {
+            background-color: #2196F3;
+        }
+
+        .video-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #videoFeed {
+            width: 100%;
+            max-width: 1080px;
+            border-radius: 4px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .detections {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .detection-item {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .confidence-bar {
+            height: 20px;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+
+        .stream-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-label {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .video-container {
+            flex: 2;
+            position: relative;
+        }
+        .results-container {
+            flex: 1;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        #videoFeed {
+            width: 100%;
+            border-radius: 8px;
+        }
+        .prediction-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .confidence-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .btn.stop {
+            background-color: #f44336;
+        }
+        .btn.stop:hover {
+            background-color: #da190b;
+        }
+        .navigation {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .navigation a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .navigation a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="navigation">
+        <a href="/">← Back to Image Upload</a>
+    </div>
+    
+    <h1>Real-time Object Detection</h1>
+    
+    <div class="container">
+        <div class="video-container">
+            <img id="videoFeed" src="/video_feed" alt="Video Feed">
+            <div class="controls">
+                <button class="btn" onclick="startStream()">Start Stream</button>
+                <button class="btn stop" onclick="stopStream()">Stop Stream</button>
+            </div>
+        </div>
+        <div class="results-container">
+            <h2>Detected Objects</h2>
+            <div id="predictions"></div>
+        </div>
+    </div>
+
+    <script>
+        let isStreaming = true;
+        const img = document.getElementById('videoFeed');
+        const predictionsDiv = document.getElementById('predictions');
+
+        function startStream() {
+            if (!isStreaming) {
+                img.src = '/video_feed';
+                isStreaming = true;
+            }
+        }
+
+        function stopStream() {
+            if (isStreaming) {
+                fetch('/stop_stream')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            img.src = '';
+                            isStreaming = false;
+                            predictionsDiv.innerHTML = '<p>Stream stopped</p>';
+                        }
+                    });
+            }
+        }
+
+        // Function to parse predictions from custom header
+        function parsePredictions(xhr) {
+            const predictions = xhr.getResponseHeader('X-Predictions');
+            if (predictions) {
+                try {
+                    return JSON.parse(predictions);
+                } catch (e) {
+                    console.error('Error parsing predictions:', e);
+                    return [];
+                }
+            }
+            return [];
+        }
+
+        // Update predictions display
+        function updatePredictions(predictions) {
+            if (!predictions || predictions.length === 0) {
+                predictionsDiv.innerHTML = '<p>No objects detected</p>';
+                return;
+            }
+
+            // Sort predictions by confidence
+            predictions.sort((a, b) => b.confidence - a.confidence);
+
+            // Update display
+            predictionsDiv.innerHTML = predictions.map(pred => {
+                const confidence = (pred.confidence * 100).toFixed(2);
+                return `
+                    <div class="prediction-item">
+                        <strong>${pred.class}</strong>
+                        <div class="confidence-bar" style="width: ${confidence}%"></div>
+                        <small>Confidence: ${confidence}%</small>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Set up the stream
+        let imageStream = new Image();
+        imageStream.onload = function() {
+            img.src = this.src;
+        }
+
+        // Create XHR to handle streaming and get predictions
+        function startImageStream() {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/video_feed');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 3) { // Loading
+                    const predictions = parsePredictions(xhr);
+                    updatePredictions(predictions);
+                }
+            };
+            xhr.send();
+        }
+
+        // Start the stream when page loads
+        startImageStream();
+    </script>
+</body>
+</html>

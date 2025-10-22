@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Object Detection System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --secondary-color: #03A9F4;
+            --accent-color: #FF4081;
+            --success-color: #4CAF50;
+            --warning-color: #FFC107;
+            --error-color: #F44336;
+            --background-color: #f5f5f5;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --border-radius: 8px;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .camera-selection {
+            background: white;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .camera-select {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin-top: 0.5rem;
+        }
+
+        .detection-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .video-container {
+            background: white;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        #videoFeed, #videoPreview {
+            width: 100%;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 1rem 0;
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn.stop {
+            background: var(--error-color);
+        }
+
+        .btn.refresh {
+            background: var(--success-color);
+        }
+
+        .stream-stats {
+            display: flex;
+            gap: 20px;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-label {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .results-container {
+            background: white;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .prediction-item {
+            background: #f8f9fa;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .confidence-bar {
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 3px;
+            margin-top: 8px;
+        }
+
+        .video-analysis-container {
+            background: white;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .upload-zone {
+            border: 3px dashed var(--primary-color);
+            padding: 2rem;
+            text-align: center;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            background: rgba(33, 150, 243, 0.05);
+            border-color: var(--secondary-color);
+        }
+
+        .timeline-container {
+            margin: 1rem 0;
+        }
+
+        .timeline {
+            height: 100px;
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        #timelineSlider {
+            flex: 1;
+        }
+
+        .analysis-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .progress-container {
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 1024px) {
+            .detection-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Advanced Object Detection System</h1>
+        <p>Real-time detection & Video Analysis</p>
+    </div>
+
+    <div class="container">
+        <div class="camera-selection">
+            <h3>Select Camera Source</h3>
+            <select id="cameraSelect" class="camera-select">
+                <option value="">Loading cameras...</option>
+            </select>
+        </div>
+
+        <div class="detection-container">
+            <div class="video-container">
+                <img id="videoFeed" alt="Video Feed">
+                <div class="controls">
+                    <button class="btn" onclick="startStream()">Start Stream</button>
+                    <button class="btn stop" onclick="stopStream()">Stop Stream</button>
+                    <button class="btn refresh" onclick="refreshCameras()">
+                        <i class="fas fa-sync"></i> Refresh Cameras
+                    </button>
+                </div>
+                <div class="stream-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">FPS:</span>
+                        <span id="currentFps">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Resolution:</span>
+                        <span id="streamResolution">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-container">
+                <h2>Detected Objects</h2>
+                <div id="realtimePredictions"></div>
+            </div>
+        </div>
+
+        <div class="video-analysis-container" style="margin-top: 2rem;">
+            <h2>Video Analysis</h2>
+            <div class="upload-zone" id="videoDropZone">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--primary-color);"></i>
+                <h3>Drop Video File Here</h3>
+                <p>or</p>
+                <input type="file" id="videoInput" accept="video/*" style="display: none;">
+                <button class="btn" onclick="document.getElementById('videoInput').click()">
+                    Select Video
+                </button>
+                <p style="margin-top: 1rem; color: #666;">
+                    Supported formats: MP4, AVI, MOV
+                </p>
+            </div>
+
+            <div id="videoAnalysis" style="display: none;">
+                <div class="progress-container">
+                    <h3>Analysis Progress</h3>
+                    <div class="progress-bar">
+                        <div class="progress" id="analysisProgress"></div>
+                    </div>
+                    <p id="progressText" style="text-align: center; margin-top: 0.5rem;">0%</p>
+                </div>
+
+                <div class="video-preview">
+                    <video id="videoPreview" controls>
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+
+                <div class="timeline-container">
+                    <div class="timeline-controls">
+                        <button class="btn">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <input type="range" id="timelineSlider" min="0" max="100" value="0">
+                        <span id="currentTime">00:00</span>
+                    </div>
+                    <div class="timeline" id="videoTimeline"></div>
+                </div>
+
+                <div class="analysis-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalDetections">0</div>
+                        <div>Total Detections</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgDetections">0</div>
+                        <div>Avg. Detections/sec</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="maxConfidence">0%</div>
+                        <div>Peak Confidence</div>
+                    </div>
+                </div>
+
+                <div class="detection-results">
+                    <h3>Frame-by-Frame Analysis</h3>
+                    <div id="frameResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Camera handling
+        let currentCameraId = 0;
+        let isStreaming = false;
+        let frameCount = 0;
+        let lastFpsUpdate = Date.now();
+
+        // Load available cameras
+        function loadCameras() {
+            fetch('/available_cameras')
+                .then(response => response.json())
+                .then(cameras => {
+                    const select = document.getElementById('cameraSelect');
+                    select.innerHTML = cameras.map(camera => 
+                        `<option value="${camera.id}">${camera.name}</option>`
+                    ).join('');
+                });
+        }
+
+        function refreshCameras() {
+            loadCameras();
+        }
+
+        // Camera stream handling
+        function startStream() {
+            if (!isStreaming) {
+                const cameraId = document.getElementById('cameraSelect').value;
+                document.getElementById('videoFeed').src = `/video_feed/${cameraId}`;
+                isStreaming = true;
+                updateStats();
+            }
+        }
+
+        function stopStream() {
+            if (isStreaming) {
+                fetch('/stop_stream')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            document.getElementById('videoFeed').src = '';
+                            isStreaming = false;
+                            document.getElementById('realtimePredictions').innerHTML = 
+                                '<p>Stream stopped</p>';
+                        }
+                    });
+            }
+        }
+
+        // FPS and stats updates
+        function updateStats() {
+            if (isStreaming) {
+                frameCount++;
+                const now = Date.now();
+                const elapsed = (now - lastFpsUpdate) / 1000;
+
+                if (elapsed >= 1) {
+                    document.getElementById('currentFps').textContent = 
+                        Math.round(frameCount / elapsed);
+                    frameCount = 0;
+                    lastFpsUpdate = now;
+                }
+
+                requestAnimationFrame(updateStats);
+            }
+        }
+
+        // Video upload handling
+        const videoDropZone = document.getElementById('videoDropZone');
+        const videoInput = document.getElementById('videoInput');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            videoDropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        videoDropZone.addEventListener('drop', handleVideoDrop);
+        videoInput.addEventListener('change', handleVideoSelect);
+
+        function handleVideoDrop(e) {
+            const file = e.dataTransfer.files[0];
+            handleVideoFile(file);
+        }
+
+        function handleVideoSelect(e) {
+            const file = e.target.files[0];
+            handleVideoFile(file);
+        }
+
+        function handleVideoFile(file) {
+            if (file && file.type.startsWith('video/')) {
+                const videoPreview = document.getElementById('videoPreview');
+                videoPreview.src = URL.createObjectURL(file);
+                document.getElementById('videoAnalysis').style.display = 'block';
+                
+                // Upload and process video
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Show progress
+                document.getElementById('analysisProgress').style.width = '0%';
+                document.getElementById('progressText').textContent = '0%';
+                
+                fetch('/predict/video', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayVideoResults(data);
+                    } else {
+                        alert('Error processing video: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error uploading video');
+                });
+            }
+        }
+
+        function displayVideoResults(data) {
+            const predictions = data.predictions;
+            const stats = calculateVideoStats(predictions);
+            
+            // Update stats
+            document.getElementById('totalDetections').textContent = stats.totalDetections;
+            document.getElementById('avgDetections').textContent = stats.avgDetectionsPerSecond.toFixed(1);
+            document.getElementById('maxConfidence').textContent = (stats.maxConfidence * 100).toFixed(1) + '%';
+            
+            // Display frame-by-frame results
+            const frameResults = document.getElementById('frameResults');
+            frameResults.innerHTML = '';
+            
+            Object.entries(predictions).forEach(([second, data]) => {
+                const frameDiv = document.createElement('div');
+                frameDiv.className = 'prediction-item';
+                frameDiv.innerHTML = `
+                    <h4>Second ${data.timestamp}</h4>
+                    ${data.predictions.map(pred => `
+                        <div>
+                            <strong>${pred.class}</strong>
+                            <div class="confidence-bar" style="width: ${pred.confidence * 100}%"></div>
+                            <small>Confidence: ${(pred.confidence * 100).toFixed(1)}%</small>
+                        </div>
+                    `).join('')}
+                `;
+                frameResults.appendChild(frameDiv);
+            });
+        }
+
+        function calculateVideoStats(predictions) {
+            let totalDetections = 0;
+            let maxConfidence = 0;
+            const seconds = Object.keys(predictions).length;
+            
+            Object.values(predictions).forEach(data => {
+                totalDetections += data.predictions.length;
+                data.predictions.forEach(pred => {
+                    maxConfidence = Math.max(maxConfidence, pred.confidence);
+                });
+            });
+            
+            return {
+                totalDetections,
+                avgDetectionsPerSecond: totalDetections / seconds,
+                maxConfidence
+            };
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCameras();
+        });
+    </script>
+</body>
+</html>

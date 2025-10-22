@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Object Detection System</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --secondary-color: #03A9F4;
+            --accent-color: #FF4081;
+            --background-color: #f5f5f5;
+            --card-color: #ffffff;
+            --text-color: #333333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .upload-section {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+        }
+        .upload-section:hover {
+            border-color: #666;
+        }
+        #fileInput {
+            display: none;
+        }
+        .upload-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .upload-btn:hover {
+            background-color: #45a049;
+        }
+        #preview {
+            max-width: 100%;
+            margin: 20px 0;
+            display: none;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+        }
+        .prediction-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .confidence-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .loading::after {
+            content: "⏳";
+            animation: loading 1s infinite;
+        }
+        @keyframes loading {
+            0% { content: "⏳"; }
+            50% { content: "⌛"; }
+            100% { content: "⏳"; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YOLO Object Detection</h1>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <a href="/realtime" style="color: #4CAF50; text-decoration: none; font-size: 18px;">
+                Try Real-time Detection →
+            </a>
+        </div>
+        
+        <div class="upload-section" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose Image or Drop Here
+            </button>
+            <p>Supported formats: JPG, PNG</p>
+        </div>
+
+        <img id="preview" alt="Preview">
+        
+        <div class="loading" id="loading">
+            Processing image...
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop zone when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        // Handle dropped files
+        dropZone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFiles, false);
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropZone.style.borderColor = '#4CAF50';
+        }
+
+        function unhighlight(e) {
+            dropZone.style.borderColor = '#ccc';
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles({target: {files: files}});
+        }
+
+        function handleFiles(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+
+                // Upload and process
+                uploadFile(file);
+            }
+        }
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show loading
+            loading.style.display = 'block';
+            results.style.display = 'none';
+
+            fetch('/predict/image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                displayResults(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loading.style.display = 'none';
+                results.innerHTML = '<p style="color: red;">Error processing image</p>';
+                results.style.display = 'block';
+            });
+        }
+
+        function displayResults(data) {
+            if (data.status === 'success' && data.predictions) {
+                results.innerHTML = '<h2>Detected Objects:</h2>';
+                data.predictions.sort((a, b) => b.confidence - a.confidence);
+                
+                data.predictions.forEach(pred => {
+                    const confidence = (pred.confidence * 100).toFixed(2);
+                    const div = document.createElement('div');
+                    div.className = 'prediction-item';
+                    div.innerHTML = `
+                        <strong>${pred.class}</strong>
+                        <div class="confidence-bar" style="width: ${confidence}%"></div>
+                        <small>Confidence: ${confidence}%</small>
+                    `;
+                    results.appendChild(div);
+                });
+
+                results.style.display = 'block';
+            } else {
+                results.innerHTML = '<p>No objects detected</p>';
+                results.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
